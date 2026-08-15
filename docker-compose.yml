@@ -1,0 +1,33 @@
+services:
+  joplin-postgres:
+    image: postgres:15
+    container_name: joplin-postgres
+    volumes:
+      - /docker/joplindb:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=joplin
+  app:
+    image: joplin/server:latest
+    container-name: joplin 
+    depends_on:
+      - joplin-postgres
+    restart: unless-stopped
+    environment:
+      - APP_BASE_URL=https://joplin.micedric.dpdns.org
+      - DB_CLIENT=pg
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=joplin
+      - POSTGRES_USER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+      - MAILER_ENABLED=1
+      - MAILER_HOST=smtp.gmail.com
+      - MAILER_PORT=465
+      - MAILER_SECURE=1
+      - MAILER_AUTH_USER=youremail@gmail.com
+      - MAILER_AUTH_PASSWORD=Y0urP@ssw0rd
+      - MAILER_NOREPLY_NAME=Joplin
+      - MAILER_NOREPLY_EMAIL=email@email.com
