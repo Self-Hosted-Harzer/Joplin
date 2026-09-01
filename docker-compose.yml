@@ -13,13 +13,14 @@ services:
       - POSTGRES_DB=${POSTGRES_DATABASE}
   joplin:
     image: joplin/server:latest
-    container_name: joplin 
+    container_name: joplin
     depends_on:
       - joplin-postgres
     restart: unless-stopped
     networks:
       - mynet
     environment:
+      - APP_PORT=22300
       - APP_BASE_URL=${URL}
       - DB_CLIENT=${DB_CLIENT}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -30,11 +31,35 @@ services:
       - MAILER_ENABLED=1
       - MAILER_HOST=smtp.gmail.com
       - MAILER_PORT=465
-      - MAILER_SECURE=1
+      - MAILER_SECURITY=tls
       - MAILER_AUTH_USER=${MAILER_AUTH_USER}
       - MAILER_AUTH_PASSWORD=${MAILER_AUTH_PASSWORD}
       - MAILER_NOREPLY_NAME=${MAILER_NOREPLY_NAME}
       - MAILER_NOREPLY_EMAIL=${MAILER_NOREPLY_EMAIL}
+    labels:
+      - "traefik.enable=true"
+
+      # Routing / Subdomain
+      - "traefik.http.routers.joplin.rule=Host(`joplin.micedric.dpdns.org`)"
+      - "traefik.http.routers.joplin.entrypoints=websecure"
+      - "traefik.http.routers.joplin.tls.certresolver=myresolver"
+      - "traefik.http.routers.joplin.middlewares=joplin-sablier"
+      - "traefik.http.services.joplin.loadbalancer.server.port=22300"
+
+      # Sablier: Container darf trotz Stopp im Routing bleiben
+      - "traefik.docker.allownonrunning=true"
+
+      # Sablier-Gruppierung
+      - "sablier.enable=true"
+      - "sablier.group=joplin"
+
+      # Sablier-Middleware-Konfiguration (alles unter demselben Namen!)
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.group=joplin"
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.sablierUrl=http://sablier:10000"
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.sessionDuration=15m"
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.dynamic.displayName=Joplin"
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.dynamic.theme=ghost"
+      - "traefik.http.middlewares.joplin-sablier.plugin.sablier.dynamic.refreshFrequency=3s"
 
 networks:
   mynet:
